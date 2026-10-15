@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioScope — Biology Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0fdf4; --surface:#ffffff; --surface-2:#f0fdf4; --line:#bbf7d0; --line-soft:#dcfce7;
+  --ink:#14532d; --ink-2:#166534; --ink-3:#4ade80;
+  --accent:#16a34a; --accent-soft:#dcfce7; --accent-ink:#fff;
+  --good:#15803d; --warn:#ca8a04; --bad:#dc2626;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 8px 24px -8px rgba(0,0,0,.14);
+  --r:12px;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#052e16; --surface:#071f0e; --surface-2:#0a3018; --line:#14532d; --line-soft:#0d3b1c;
+  --ink:#bbf7d0; --ink-2:#86efac; --ink-3:#4ade80;
+  --accent:#22c55e; --accent-soft:#14532d; --accent-ink:#052e16;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px -8px rgba(0,0,0,.7);
+}}
+:root[data-theme=dark]{
+  --bg:#052e16; --surface:#071f0e; --surface-2:#0a3018; --line:#14532d; --line-soft:#0d3b1c;
+  --ink:#bbf7d0; --ink-2:#86efac; --ink-3:#4ade80;
+  --accent:#22c55e; --accent-soft:#14532d; --accent-ink:#052e16;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 24px -8px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter",sans-serif;font-size:15px;line-height:1.5;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+h1,h2,h3{font-weight:700;letter-spacing:-.02em}
+
+/* HEADER */
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:0 20px;display:flex;align-items:center;gap:12px;height:52px;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--accent)}
+.brand svg{flex-shrink:0}
+.spacer{flex:1}
+.theme-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink-2)}
+.theme-btn:hover{background:var(--surface-2)}
+
+/* TABS */
+.tab-bar{display:flex;gap:2px;overflow-x:auto;padding:12px 20px 0;background:var(--surface);border-bottom:1px solid var(--line);scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{padding:8px 14px;border-radius:8px 8px 0 0;font-size:13px;font-weight:600;color:var(--ink-2);border:1px solid transparent;border-bottom:none;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:background .15s}
+.tab-btn .num{font-family:"IBM Plex Mono",monospace;font-size:10px;opacity:.6}
+.tab-btn:hover{background:var(--accent-soft)}
+.tab-btn.active{background:var(--bg);border-color:var(--line);color:var(--accent)}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:24px 20px}
+.panel{display:none}
+.panel.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+.card+.card{margin-top:16px}
+.card h3{font-size:15px;margin-bottom:8px;color:var(--accent)}
+.hint{font-size:13px;color:var(--ink-2);margin-bottom:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.grid-2{grid-template-columns:1fr}}
+
+/* BUTTONS */
+.btn{padding:8px 18px;border-radius:8px;font-size:13.5px;font-weight:600;background:var(--accent);color:var(--accent-ink);border:none;cursor:pointer;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink-2)}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* MICROSCOPE */
+.scope-stage{width:100%;max-width:420px;margin:0 auto;aspect-ratio:1;border-radius:50%;border:6px solid var(--line);overflow:hidden;background:#000;position:relative;cursor:crosshair}
+.scope-lens{width:100%;height:100%;position:relative;display:flex;align-items:center;justify-content:center}
+.scope-vignette{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 60px 30px rgba(0,0,0,.65);pointer-events:none;z-index:2}
+canvas#scopeCanvas{width:100%;height:100%;border-radius:50%}
+.scope-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
+.scope-controls select,.scope-controls button{padding:8px;border-radius:8px;font-size:12.5px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit}
+.mag-badge{display:inline-block;background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px}
+
+/* CELL DIAGRAM */
+.cell-wrap{position:relative;width:100%;max-width:460px;margin:0 auto}
+.cell-wrap svg{width:100%;height:auto}
+.cell-label{position:absolute;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+.cell-label:hover,.cell-label.active{background:var(--accent);color:#fff}
+.cell-info{margin-top:14px;padding:12px 14px;background:var(--accent-soft);border-radius:10px;border-left:3px solid var(--accent);font-size:13.5px;min-height:52px}
+
+/* ORGAN SYSTEMS */
+.system-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+.sys-card{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s}
+.sys-card:hover,.sys-card.active{border-color:var(--accent);background:var(--accent-soft)}
+.sys-card .icon{font-size:28px;display:block;margin-bottom:6px}
+.sys-card .name{font-size:12px;font-weight:600}
+.sys-detail{margin-top:16px;padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;display:none}
+.sys-detail.show{display:block}
+.sys-detail h3{margin-bottom:8px;color:var(--accent)}
+.sys-detail ul{padding-left:18px;font-size:13.5px;line-height:1.9}
+
+/* GENETICS */
+.punnett{display:grid;grid-template-columns:auto 1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:2px;max-width:260px;margin:16px auto}
+.punnett-cell{background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:10px;text-align:center;font-size:16px;font-weight:700;font-family:"IBM Plex Mono",monospace}
+.punnett-cell.header{background:var(--accent);color:#fff;font-size:13px;font-weight:600}
+.punnett-cell.corner{background:transparent;border-color:transparent}
+.trait-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.trait-row label{font-size:13px;font-weight:600;min-width:80px}
+.trait-row select{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px}
+.ratio-bar{height:28px;border-radius:8px;overflow:hidden;display:flex;margin-top:12px}
+.ratio-seg{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;transition:width .4s}
+
+/* QUIZ */
+.quiz-q{font-size:15px;font-weight:600;margin-bottom:14px;line-height:1.5}
+.quiz-opts{display:flex;flex-direction:column;gap:8px}
+.quiz-opt{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);cursor:pointer;font-size:13.5px;text-align:left;transition:all .15s}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.quiz-opt.correct{background:#dcfce7;border-color:#16a34a;color:#14532d}
+.quiz-opt.wrong{background:#fee2e2;border-color:#dc2626;color:#991b1b}
+.quiz-bar{height:6px;background:var(--line);border-radius:3px;margin-bottom:18px}
+.quiz-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
+.quiz-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-2);margin-bottom:8px}
+.score-ring{width:100px;height:100px;border-radius:50%;border:6px solid var(--accent);display:grid;place-items:center;margin:0 auto 16px;font-size:26px;font-weight:700}
+.feedback{padding:10px 14px;border-radius:9px;font-size:13.5px;margin-top:12px;display:none}
+.feedback.show{display:block}
+.feedback.good{background:#dcfce7;color:#14532d}
+.feedback.bad{background:#fee2e2;color:#991b1b}
+
+/* NCERT CHAPTERS */
+.chapter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:16px}
+.ch-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.ch-grade{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:8px}
+.ch-list{list-style:none}
+.ch-list li{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line-soft);font-size:13px;color:var(--ink-2)}
+.ch-list li:last-child{border-bottom:none}
+.ch-list li .n{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);min-width:18px}
+.ch-list li .t{color:var(--ink)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:#14532d;color:#fff;padding:9px 18px;border-radius:10px;font-size:13.5px;font-weight:500;opacity:0;transition:all .25s;z-index:999;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="9"/><path d="M12 3v18M6.35 6.35a9 9 0 0 1 11.3 0M6.35 17.65a9 9 0 0 0 11.3 0M3 12h18"/>
+    </svg>
+    BioScope <small style="font-weight:400;opacity:.6;margin-left:4px">Biology Lab</small>
+  </div>
+  <div class="spacer"></div>
+  <button class="theme-btn" id="themeBtn" title="Toggle theme">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 1v14M3 8h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/></svg>
+  </button>
+</header>
+
+<div class="tab-bar" id="tabBar">
+  <button class="tab-btn active" data-tab="microscope">🔬 Microscope <span class="num">01</span></button>
+  <button class="tab-btn" data-tab="cell">🧫 Cell Structure <span class="num">02</span></button>
+  <button class="tab-btn" data-tab="systems">🫀 Organ Systems <span class="num">03</span></button>
+  <button class="tab-btn" data-tab="genetics">🧬 Genetics <span class="num">04</span></button>
+  <button class="tab-btn" data-tab="quiz">📝 Quiz <span class="num">05</span></button>
+  <button class="tab-btn" data-tab="ncert">📚 NCERT Chapters <span class="num">06</span></button>
+</div>
+
+<main>
+
+<!-- ===== MICROSCOPE ===== -->
+<div class="panel active" id="tab-microscope">
+  <div class="grid-2">
+    <div class="card">
+      <h3>Virtual Microscope</h3>
+      <p class="hint">Select a slide, choose magnification, then drag to pan across the specimen.</p>
+      <div class="scope-stage" id="scopeStage">
+        <div class="scope-lens">
+          <canvas id="scopeCanvas" width="400" height="400"></canvas>
+          <div class="scope-vignette"></div>
+        </div>
+      </div>
+      <div class="scope-controls">
+        <select id="slideSelect">
+          <option value="onion">Onion Peel</option>
+          <option value="blood">Human Blood</option>
+          <option value="leaf">Leaf Cross-section</option>
+          <option value="amoeba">Amoeba</option>
+          <option value="bacteria">Bacteria</option>
+          <option value="spirogyra">Spirogyra</option>
+        </select>
+        <select id="magSelect">
+          <option value="4">4× objective</option>
+          <option value="10">10× objective</option>
+          <option value="40" selected>40× objective</option>
+          <option value="100">100× oil</option>
+        </select>
+        <button class="btn" id="focusBtn">Auto-focus</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 id="slideTitle">Onion Peel — 40×</h3>
+      <p id="slideDesc" style="font-size:13.5px;color:var(--ink-2);margin-bottom:12px">Allium cepa epidermal cells. Note the rectangular cell walls, large central vacuole, and nucleus visible as a dense spot.</p>
+      <div style="margin-top:8px">
+        <div style="font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Visible Structures</div>
+        <div id="structureList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div style="margin-top:14px;padding:12px;background:var(--accent-soft);border-radius:9px;font-size:13px" id="scopeNote">
+        <strong>Tip:</strong> Drag on the microscope view to pan. Real magnification = objective × eyepiece (usually 10×).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CELL STRUCTURE ===== -->
+<div class="panel" id="tab-cell">
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      <button class="btn" id="plantBtn" onclick="showCell('plant')">🌿 Plant Cell</button>
+      <button class="btn ghost" id="animalBtn" onclick="showCell('animal')">🐾 Animal Cell</button>
+    </div>
+    <p class="hint" id="cellHint">Click any label to learn about that organelle.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="cell-wrap">
+        <canvas id="cellCanvas" width="460" height="380"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3 id="organelleName">Select an organelle</h3>
+      <div class="cell-info" id="organelleInfo">Click a label on the cell diagram to see details about each organelle.</div>
+      <div style="margin-top:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">All Organelles</div>
+        <div id="organelleList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ORGAN SYSTEMS ===== -->
+<div class="panel" id="tab-systems">
+  <div class="card">
+    <h3>Human Organ Systems</h3>
+    <p class="hint">Tap a system to explore its organs and functions.</p>
+    <div class="system-grid" id="systemGrid"></div>
+  </div>
+  <div class="sys-detail" id="sysDetail">
+    <h3 id="sysName"></h3>
+    <p id="sysDesc" style="font-size:13.5px;color:var(--ink-2);margin-bottom:10px"></p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:6px">Key Organs</div>
+        <ul id="sysOrgans" style="padding-left:18px;font-size:13.5px;line-height:2"></ul>
+      </div>
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-bottom:6px">Key Functions</div>
+        <ul id="sysFunctions" style="padding-left:18px;font-size:13.5px;line-height:2"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GENETICS ===== -->
+<div class="panel" id="tab-genetics">
+  <div class="grid-2">
+    <div class="card">
+      <h3>Punnett Square</h3>
+      <p class="hint">Choose parent traits to predict offspring genotypes.</p>
+      <div class="trait-row">
+        <label>Trait</label>
+        <select id="traitSel">
+          <option value="flower">Flower colour (R/r)</option>
+          <option value="height">Plant height (T/t)</option>
+          <option value="seeds">Seed shape (S/s)</option>
+          <option value="eye">Eye colour (B/b)</option>
+        </select>
+      </div>
+      <div class="trait-row">
+        <label>Parent 1</label>
+        <select id="p1Sel"><option>RR</option><option selected>Rr</option><option>rr</option></select>
+      </div>
+      <div class="trait-row">
+        <label>Parent 2</label>
+        <select id="p2Sel"><option>RR</option><option selected>Rr</option><option>rr</option></select>
+      </div>
+      <button class="btn" onclick="window.calcPunnett()" style="margin-top:6px">Calculate</button>
+      <div class="punnett" id="punnett" style="margin-top:16px"></div>
+      <div class="ratio-bar" id="ratioBar" style="margin-top:12px"></div>
+      <div id="ratioLabel" style="font-size:12.5px;color:var(--ink-2);margin-top:6px;text-align:center"></div>
+    </div>
+    <div class="card">
+      <h3>Key Genetics Terms</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px" id="glossary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== QUIZ ===== -->
+<div class="panel" id="tab-quiz">
+  <div class="card" style="max-width:620px;margin:0 auto" id="quizCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3>Biology Quiz</h3>
+      <select id="quizClass" style="padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:inherit;font-size:13px">
+        <option value="all">All Classes</option>
+        <option value="6">Class 6</option>
+        <option value="9">Class 9</option>
+        <option value="10">Class 10</option>
+        <option value="11">Class 11</option>
+        <option value="12">Class 12</option>
+      </select>
+    </div>
+    <div id="quizBody"></div>
+  </div>
+</div>
+
+<!-- ===== NCERT CHAPTERS ===== -->
+<div class="panel" id="tab-ncert">
+  <div class="card" style="margin-bottom:16px">
+    <h3>NCERT Biology — Class 6 to 12</h3>
+    <p class="hint">All chapters organised by class.</p>
+  </div>
+  <div class="chapter-grid" id="chapterGrid"></div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ---- theme ---- */
+let theme = localStorage.getItem('bio-theme') || '';
+if(theme) document.documentElement.setAttribute('data-theme', theme);
+$('#themeBtn').addEventListener('click', () => {
+  const t = document.documentElement.getAttribute('data-theme');
+  const next = (t === 'dark') ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('bio-theme', next);
+});
+
+/* ---- tabs ---- */
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    $$('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('#tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---- toast ---- */
+let toastT;
+function toast(msg) {
+  const n = $('#toast');
+  n.textContent = msg; n.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => n.classList.remove('show'), 2400);
+}
+
+/* ==================== MICROSCOPE ==================== */
+const SLIDES = {
+  onion: {
+    title: 'Onion Peel — ',
+    desc: 'Allium cepa epidermal cells. Note the rectangular cell walls, large central vacuole, and nucleus visible as a dense spot.',
+    color: '#d4edda', wallColor: '#5a8a5a', nucleusColor: '#2d5a2d',
+    type: 'plant_simple',
+    structures: ['Cell wall','Cell membrane','Nucleus','Vacuole','Cytoplasm']
+  },
+  blood: {
+    title: 'Human Blood Smear — ',
+    desc: 'Peripheral blood smear. RBCs appear as biconcave discs. WBCs show lobed nuclei. Platelets appear as tiny fragments.',
+    color: '#ffe4e4', wallColor: '#e57373', nucleusColor: '#b71c1c',
+    type: 'blood',
+    structures: ['Red Blood Cells','White Blood Cells','Platelets','Plasma']
+  },
+  leaf: {
+    title: 'Leaf Cross-section — ',
+    desc: 'Dicot leaf T.S. Shows upper/lower epidermis, palisade mesophyll, spongy mesophyll, guard cells, and vascular bundle.',
+    color: '#c8e6c9', wallColor: '#388e3c', nucleusColor: '#1b5e20',
+    type: 'leaf',
+    structures: ['Epidermis','Palisade Cells','Spongy Mesophyll','Guard Cells','Vascular Bundle']
+  },
+  amoeba: {
+    title: 'Amoeba — ',
+    desc: 'Unicellular organism. Pseudopodia extend for movement and feeding. Contractile vacuole for osmoregulation.',
+    color: '#fff9c4', wallColor: '#f9a825', nucleusColor: '#e65100',
+    type: 'amoeba',
+    structures: ['Pseudopodia','Nucleus','Contractile Vacuole','Food Vacuole','Cytoplasm']
+  },
+  bacteria: {
+    title: 'Bacteria (Rod-shaped) — ',
+    desc: 'Bacillus sp. Prokaryotic cells — no membrane-bound nucleus. Cell wall visible. Flagella may be present.',
+    color: '#e1f5fe', wallColor: '#0288d1', nucleusColor: '#01579b',
+    type: 'bacteria',
+    structures: ['Cell Wall','Nucleoid (DNA)','Ribosome','Flagella','Pili']
+  },
+  spirogyra: {
+    title: 'Spirogyra — ',
+    desc: 'Filamentous green alga. Spiral chloroplasts are the defining feature. Pyrenoids visible along the chloroplast.',
+    color: '#e8f5e9', wallColor: '#43a047', nucleusColor: '#1b5e20',
+    type: 'spirogyra',
+    structures: ['Spiral Chloroplast','Nucleus','Pyrenoid','Cell Wall','Vacuole']
+  }
+};
+
+const scopeCanvas = $('#scopeCanvas');
+const scopeCtx = scopeCanvas.getContext('2d');
+let scopePan = {x:0, y:0}, scopeDrag = null, scopeMag = 40, currentSlide = 'onion';
+let scopeNoise = [];
+
+function genNoise(n=800) {
+  scopeNoise = [];
+  for(let i=0;i<n;i++) scopeNoise.push({x:Math.random()*400,y:Math.random()*400,r:Math.random()*1.2,a:Math.random()*.15});
+}
+genNoise();
+
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+function drawScope() {
+  const sl = SLIDES[currentSlide];
+  const ctx = scopeCtx;
+  const W=400, H=400;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = sl.color;
+  ctx.fillRect(0,0,W,H);
+
+  const ox = scopePan.x * (scopeMag/40);
+  const oy = scopePan.y * (scopeMag/40);
+  const scale = scopeMag/40;
+
+  ctx.save();
+  ctx.translate(ox % (80*scale), oy % (80*scale));
+
+  if(sl.type === 'plant_simple') {
+    for(let r=-1;r<7;r++) for(let c=-1;c<8;c++) {
+      const x = c*55*scale, y = r*70*scale;
+      ctx.strokeStyle = sl.wallColor; ctx.lineWidth = 2*scale;
+      ctx.strokeRect(x+4,y+4,48*scale,62*scale);
+      // nucleus
+      ctx.fillStyle = sl.nucleusColor+'88';
+      ctx.beginPath(); ctx.ellipse(x+28*scale,y+32*scale,8*scale,6*scale,0,0,Math.PI*2); ctx.fill();
+      // vacuole
+      ctx.fillStyle = '#b3e5fc55';
+      ctx.beginPath(); ctx.ellipse(x+28*scale,y+38*scale,18*scale,16*scale,0,0,Math.PI*2); ctx.fill();
+    }
+  } else if(sl.type === 'blood') {
+    for(let i=0;i<30;i++) {
+      const x=(i%6)*65*scale+10, y=Math.floor(i/6)*70*scale+10;
+      ctx.fillStyle = '#ef9a9a';
+      ctx.beginPath(); ctx.ellipse(x,y,20*scale,14*scale,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#c62828aa';
+      ctx.beginPath(); ctx.ellipse(x,y,8*scale,5*scale,0,0,Math.PI*2); ctx.fill();
+    }
+    // WBCs
+    for(let i=0;i<3;i++) {
+      const x=30+i*130*scale, y=40+i*30;
+      ctx.fillStyle = '#ce93d8';
+      ctx.beginPath(); ctx.arc(x,y,16*scale,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#6a1b9a';
+      ctx.beginPath(); ctx.arc(x,y,9*scale,0,Math.PI*2); ctx.fill();
+    }
+  } else if(sl.type === 'leaf') {
+    // upper epidermis
+    ctx.fillStyle = '#a5d6a7'; ctx.fillRect(0,0,W,28*scale);
+    // palisade
+    for(let i=0;i<12;i++){ctx.fillStyle='#66bb6a';ctx.fillRect(i*35*scale,30*scale,28*scale,80*scale);}
+    // spongy
+    for(let i=0;i<20;i++){ctx.fillStyle='#aed581';ctx.beginPath();ctx.ellipse((i%5)*70*scale+30,140*scale+Math.floor(i/5)*25*scale,20*scale,10*scale,0.4,0,Math.PI*2);ctx.fill();}
+    // lower epidermis + guard cells
+    ctx.fillStyle='#81c784';ctx.fillRect(0,220*scale,W,22*scale);
+    ctx.fillStyle='#2e7d32';ctx.beginPath();ctx.ellipse(120*scale,220*scale,12*scale,7*scale,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(148*scale,220*scale,12*scale,7*scale,0,0,Math.PI*2);ctx.fill();
+  } else if(sl.type === 'amoeba') {
+    ctx.fillStyle='#fff176';
+    ctx.beginPath();
+    for(let a=0;a<Math.PI*2;a+=0.05){
+      const r=80*scale+(Math.sin(a*3)*20+Math.sin(a*7)*10)*scale;
+      const x=200+Math.cos(a)*r, y=200+Math.sin(a)*r;
+      a===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#f9a825'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#e65100'; ctx.beginPath(); ctx.ellipse(190,185,22*scale,16*scale,0.3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff9c4'; ctx.beginPath(); ctx.arc(230,210,14*scale,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#f9a825'; ctx.stroke();
+  } else if(sl.type==='bacteria') {
+    for(let i=0;i<18;i++){
+      const x=(i%6)*60*scale+20, y=Math.floor(i/6)*80*scale+30, rot=Math.random()*0.8-0.4;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(rot);
+      ctx.fillStyle='#b3e5fe'; ctx.strokeStyle='#0277bd'; ctx.lineWidth=1.5;
+      rrect(ctx,-22*scale,-8*scale,44*scale,16*scale,8*scale); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#01579b88'; ctx.beginPath(); ctx.ellipse(0,0,8*scale,5*scale,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  } else if(sl.type==='spirogyra') {
+    for(let row=0;row<4;row++){
+      const y=row*90*scale+10;
+      ctx.fillStyle='#c8e6c9'; ctx.strokeStyle='#388e3c'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.rect(0,y,W,50*scale); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle='#1b5e20'; ctx.lineWidth=3*scale;
+      ctx.beginPath();
+      for(let x=0;x<W+20;x+=4){ ctx.lineTo(x, y+25*scale + Math.sin(x*0.07)*18*scale); }
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+  // grain
+  scopeNoise.forEach(n=>{ctx.fillStyle=`rgba(0,0,0,${n.a})`;ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fill();});
+}
+
+function updateSlide() {
+  const sl = SLIDES[currentSlide];
+  const mag = scopeMag;
+  $('#slideTitle').textContent = sl.title + mag + '×';
+  $('#slideDesc').textContent = sl.desc;
+  const list = $('#structureList');
+  list.innerHTML = sl.structures.map(s=>`<span style="padding:3px 9px;background:var(--accent-soft);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent)">${s}</span>`).join('');
+  genNoise();
+  drawScope();
+}
+
+$('#slideSelect').addEventListener('change', e => { currentSlide=e.target.value; scopePan={x:0,y:0}; updateSlide(); });
+$('#magSelect').addEventListener('change', e => { scopeMag=+e.target.value; updateSlide(); });
+$('#focusBtn').addEventListener('click', () => { scopePan={x:0,y:0}; genNoise(); drawScope(); toast('Slide re-centred'); });
+
+// drag to pan
+const stage = $('#scopeStage');
+stage.addEventListener('mousedown', e => { scopeDrag={x:e.clientX,y:e.clientY}; });
+window.addEventListener('mousemove', e => {
+  if(!scopeDrag) return;
+  scopePan.x += (e.clientX-scopeDrag.x)*0.8; scopePan.y += (e.clientY-scopeDrag.y)*0.8;
+  scopeDrag={x:e.clientX,y:e.clientY}; drawScope();
+});
+window.addEventListener('mouseup', () => scopeDrag=null);
+stage.addEventListener('touchstart', e => { const t=e.touches[0]; scopeDrag={x:t.clientX,y:t.clientY}; });
+stage.addEventListener('touchmove', e => {
+  if(!scopeDrag) return; e.preventDefault();
+  const t=e.touches[0];
+  scopePan.x += (t.clientX-scopeDrag.x)*0.8; scopePan.y += (t.clientY-scopeDrag.y)*0.8;
+  scopeDrag={x:t.clientX,y:t.clientY}; drawScope();
+},{passive:false});
+stage.addEventListener('touchend', () => scopeDrag=null);
+try{updateSlide();}catch(e){console.error('scope init',e);}
+
+/* ==================== CELL STRUCTURE ==================== */
+const ORGANELLES = {
+  plant: [
+    {name:'Cell Wall',x:0.08,y:0.08,w:0.84,h:0.84,color:'#8BC34A',info:'Rigid outer layer made of cellulose. Provides shape, strength, and protection. Found only in plant cells.'},
+    {name:'Cell Membrane',x:0.11,y:0.11,w:0.78,h:0.78,color:'#66BB6A',info:'Selectively permeable phospholipid bilayer. Controls what enters and leaves the cell.'},
+    {name:'Nucleus',x:0.38,y:0.35,w:0.22,h:0.18,color:'#1565C0',info:'Control centre of the cell. Contains DNA (genetic material) enclosed in a nuclear envelope with pores.'},
+    {name:'Chloroplast',x:0.18,y:0.55,w:0.18,h:0.1,color:'#2E7D32',info:'Site of photosynthesis. Contains chlorophyll. Converts sunlight + CO₂ + H₂O → glucose + O₂. Plant cell only.'},
+    {name:'Vacuole',x:0.30,y:0.58,w:0.40,h:0.25,color:'#81D4FA',info:'Large central vacuole in plant cells stores water, maintains turgor pressure, and stores pigments/waste.'},
+    {name:'Mitochondria',x:0.60,y:0.22,w:0.15,h:0.08,color:'#EF6C00',info:'Powerhouse of the cell. Site of aerobic respiration. Produces ATP (energy currency) from glucose.'},
+    {name:'Endoplasmic Reticulum',x:0.22,y:0.28,w:0.22,h:0.12,color:'#AB47BC',info:'Network of membranes. Rough ER (with ribosomes) makes proteins; Smooth ER makes lipids.'},
+    {name:'Golgi Body',x:0.60,y:0.40,w:0.20,h:0.12,color:'#F06292',info:'Modifies, packages and ships proteins and lipids. Called the post office of the cell.'},
+    {name:'Ribosome',x:0.45,y:0.22,w:0.06,h:0.06,color:'#FDD835',info:'Site of protein synthesis. Found free in cytoplasm or attached to Rough ER.'},
+  ],
+  animal: [
+    {name:'Cell Membrane',x:0.10,y:0.10,w:0.80,h:0.80,color:'#EF9A9A',info:'Flexible phospholipid bilayer. No cell wall in animal cells, so shape is irregular.'},
+    {name:'Nucleus',x:0.38,y:0.34,w:0.24,h:0.20,color:'#1565C0',info:'Contains the genetic material (DNA) organised into chromosomes. Enclosed in a double nuclear membrane.'},
+    {name:'Mitochondria',x:0.62,y:0.22,w:0.16,h:0.09,color:'#EF6C00',info:'Site of cellular respiration. Produces ATP from glucose and oxygen.'},
+    {name:'Lysosome',x:0.18,y:0.60,w:0.10,h:0.10,color:'#F44336',info:'Contains digestive enzymes. Destroys old organelles and foreign particles. Only in animal cells.'},
+    {name:'Centriole',x:0.60,y:0.60,w:0.12,h:0.12,color:'#9C27B0',info:'Helps organise cell division (mitosis/meiosis). Found only in animal cells.'},
+    {name:'Endoplasmic Reticulum',x:0.22,y:0.28,w:0.22,h:0.12,color:'#AB47BC',info:'Rough ER produces proteins; Smooth ER produces lipids and detoxifies.'},
+    {name:'Golgi Body',x:0.60,y:0.40,w:0.20,h:0.12,color:'#F06292',info:'Packages proteins and lipids for export or use within the cell.'},
+    {name:'Ribosome',x:0.45,y:0.22,w:0.06,h:0.06,color:'#FDD835',info:'Translates mRNA to build proteins. Present in all living cells.'},
+    {name:'Vacuole',x:0.22,y:0.50,w:0.14,h:0.12,color:'#81D4FA',info:'Small temporary vacuoles in animal cells store water and food. Much smaller than plant cell vacuoles.'},
+  ]
+};
+let cellType='plant', selectedOrganelle=null;
+const cellCanvas=$('#cellCanvas');
+const cellCtx=cellCanvas.getContext('2d');
+
+function drawCell() {
+  const ctx=cellCtx, W=460, H=380;
+  ctx.clearRect(0,0,W,H);
+  const orgs=ORGANELLES[cellType];
+  // bg cytoplasm
+  ctx.fillStyle=cellType==='plant'?'#f1f8e9':'#fff3e0';
+  if(cellType==='plant'){ctx.fillRect(W*0.07,H*0.07,W*0.86,H*0.86);}
+  else{ctx.beginPath();ctx.ellipse(W/2,H/2,W*0.42,H*0.42,0,0,Math.PI*2);ctx.fill();}
+
+  orgs.forEach(o=>{
+    const x=o.x*W, y=o.y*H, w=o.w*W, h=o.h*H;
+    ctx.fillStyle=o.color+'bb';
+    ctx.strokeStyle=o===selectedOrganelle?'#fff':o.color;
+    ctx.lineWidth=o===selectedOrganelle?3:1;
+    ctx.beginPath();
+    if(o.name==='Cell Wall'||o.name==='Cell Membrane'&&cellType==='plant'){ctx.rect(x,y,w,h);}
+    else{ctx.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,Math.PI*2);}
+    ctx.fill(); ctx.stroke();
+    // label
+    ctx.fillStyle='#000';
+    ctx.font=`bold ${Math.max(9,w*0.22)}px Inter`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    if(w*W>40&&h*H>18) ctx.fillText(o.name.split(' ')[0],x+w/2,y+h/2);
+  });
+}
+
+function showCell(type){
+  cellType=type; selectedOrganelle=null;
+  $('#plantBtn').className=type==='plant'?'btn':'btn ghost';
+  $('#animalBtn').className=type==='animal'?'btn':'btn ghost';
+  $('#organelleName').textContent='Select an organelle';
+  $('#organelleInfo').textContent='Click a label on the cell diagram to see details about each organelle.';
+  updateOrgList(); drawCell();
+}
+
+function updateOrgList(){
+  const list=$('#organelleList');
+  list.innerHTML=ORGANELLES[cellType].map(o=>`<button onclick="selectOrganelle('${o.name}')" style="padding:3px 9px;background:${o.color}22;border:1px solid ${o.color};border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink)">${o.name}</button>`).join('');
+}
+
+window.selectOrganelle=function(name){
+  const orgs=ORGANELLES[cellType];
+  selectedOrganelle=orgs.find(o=>o.name===name)||null;
+  if(selectedOrganelle){
+    $('#organelleName').textContent=selectedOrganelle.name;
+    $('#organelleInfo').textContent=selectedOrganelle.info;
+  }
+  drawCell();
+};
+
+cellCanvas.addEventListener('click', e=>{
+  const rect=cellCanvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(460/rect.width);
+  const my=(e.clientY-rect.top)*(380/rect.height);
+  const orgs=ORGANELLES[cellType];
+  let hit=null;
+  for(let i=orgs.length-1;i>=0;i--){
+    const o=orgs[i];
+    const cx=(o.x+o.w/2)*460, cy=(o.y+o.h/2)*380;
+    const rx=o.w*460/2, ry=o.h*380/2;
+    if(Math.pow((mx-cx)/rx,2)+Math.pow((my-cy)/ry,2)<=1){hit=o;break;}
+  }
+  if(hit){selectOrganelle(hit.name);}
+});
+
+try{showCell('plant');}catch(e){console.error('cell init',e);}
+
+/* ==================== ORGAN SYSTEMS ==================== */
+const SYSTEMS=[
+  {icon:'❤️',name:'Circulatory System',desc:'Transports blood, nutrients, oxygen, CO₂, and hormones throughout the body.',organs:['Heart','Arteries','Veins','Capillaries','Blood'],functions:['Pumps oxygenated blood to all cells','Returns deoxygenated blood to lungs','Distributes nutrients and hormones','Removes metabolic wastes']},
+  {icon:'🫁',name:'Respiratory System',desc:'Exchanges oxygen and carbon dioxide between the body and the environment.',organs:['Lungs','Trachea','Bronchi','Diaphragm','Alveoli'],functions:['Inhales oxygen into alveoli','Gas exchange through capillaries','Exhales CO₂','Maintains blood pH']},
+  {icon:'🦴',name:'Skeletal System',desc:'Provides structural support, protects organs, and enables movement.',organs:['206 Bones','Cartilage','Ligaments','Tendons','Bone Marrow'],functions:['Supports body structure','Protects brain, heart, lungs','Produces blood cells (marrow)','Stores calcium and phosphorus']},
+  {icon:'💪',name:'Muscular System',desc:'Enables movement, maintains posture, and generates body heat.',organs:['Skeletal Muscle','Smooth Muscle','Cardiac Muscle','Tendons'],functions:['Voluntary body movement','Involuntary organ movement','Pumps heart (cardiac)','Generates 85% of body heat']},
+  {icon:'🧠',name:'Nervous System',desc:'Controls and coordinates all body functions via electrical signals.',organs:['Brain','Spinal Cord','Neurons','Nerves','Sense Organs'],functions:['Processes sensory information','Controls voluntary movement','Regulates unconscious functions','Coordinates responses to stimuli']},
+  {icon:'🍽️',name:'Digestive System',desc:'Breaks down food into nutrients that the body can absorb and use.',organs:['Mouth','Oesophagus','Stomach','Small Intestine','Large Intestine','Liver','Pancreas'],functions:['Mechanical and chemical digestion','Absorbs nutrients into blood','Produces digestive enzymes','Eliminates solid wastes']},
+  {icon:'🫘',name:'Excretory System',desc:'Removes metabolic wastes and maintains fluid/ion balance.',organs:['Kidneys','Ureters','Urinary Bladder','Urethra','Skin','Lungs'],functions:['Filters blood (kidneys)','Forms and excretes urine','Removes excess water/salts','Maintains osmotic balance']},
+  {icon:'🛡️',name:'Immune System',desc:'Defends the body against pathogens, toxins, and abnormal cells.',organs:['Thymus','Spleen','Lymph Nodes','Bone Marrow','Tonsils'],functions:['Produces antibodies (B cells)','Destroys infected cells (T cells)','Stores immune memory','Filters pathogens from lymph']},
+  {icon:'🔬',name:'Endocrine System',desc:'Regulates body functions via hormones secreted into the bloodstream.',organs:['Pituitary','Thyroid','Adrenal','Pancreas','Gonads'],functions:['Controls growth and development','Regulates metabolism','Manages stress response','Controls reproduction']},
+];
+
+const sg=$('#systemGrid');
+SYSTEMS.forEach((s,i)=>{
+  const d=document.createElement('div');
+  d.className='sys-card'; d.innerHTML=`<span class="icon">${s.icon}</span><span class="name">${s.name.replace(' System','')}</span>`;
+  d.addEventListener('click',()=>{
+    $$('.sys-card').forEach(c=>c.classList.remove('active'));
+    d.classList.add('active');
+    $('#sysName').textContent=s.name;
+    $('#sysDesc').textContent=s.desc;
+    $('#sysOrgans').innerHTML=s.organs.map(o=>`<li>${o}</li>`).join('');
+    $('#sysFunctions').innerHTML=s.functions.map(f=>`<li>${f}</li>`).join('');
+    const det=$('#sysDetail'); det.classList.add('show');
+    det.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  sg.appendChild(d);
+});
+
+/* ==================== GENETICS ==================== */
+const TRAITS={
+  flower:{dom:'R',rec:'r',domName:'Red',recName:'White',mixName:'Pink'},
+  height:{dom:'T',rec:'t',domName:'Tall',recName:'Dwarf',mixName:'Tall'},
+  seeds:{dom:'S',rec:'s',domName:'Round',recName:'Wrinkled',mixName:'Round'},
+  eye:{dom:'B',rec:'b',domName:'Brown',recName:'Blue',mixName:'Brown'},
+};
+
+function updateTraitOptions(){
+  const t=TRAITS[$('#traitSel').value];
+  const opts=[[t.dom+t.dom,'Homozygous Dominant'],[t.dom+t.rec,'Heterozygous'],[t.rec+t.rec,'Homozygous Recessive']];
+  ['#p1Sel','#p2Sel'].forEach(id=>{
+    const sel=$(id), v=sel.value;
+    sel.innerHTML=opts.map(([val,lbl])=>`<option value="${val}">${val} (${lbl})</option>`).join('');
+    sel.value=v||opts[1][0];
+  });
+  window.calcPunnett&&window.calcPunnett();
+}
+$('#traitSel').addEventListener('change',updateTraitOptions);
+
+function getGametes(gen){
+  const [a,b]=gen.split('');
+  return a===b?[a]:[a,b];
+}
+
+window.calcPunnett=function(){
+  const t=TRAITS[$('#traitSel').value];
+  const p1=$('#p1Sel').value||'Rr', p2=$('#p2Sel').value||'Rr';
+  const g1=getGametes(p1), g2=getGametes(p2);
+  const box=$('#punnett');
+  box.innerHTML='';
+  box.style.gridTemplateColumns=`auto ${g2.map(()=>'1fr').join(' ')}`;
+  box.style.gridTemplateRows=`auto ${g1.map(()=>'1fr').join(' ')}`;
+  // corner
+  const corner=document.createElement('div'); corner.className='punnett-cell corner'; box.appendChild(corner);
+  // col headers
+  g2.forEach(g=>{const c=document.createElement('div');c.className='punnett-cell header';c.textContent=g;box.appendChild(c);});
+  // rows
+  const combos=[];
+  g1.forEach(a=>{
+    const rh=document.createElement('div');rh.className='punnett-cell header';rh.textContent=a;box.appendChild(rh);
+    g2.forEach(b=>{
+      const combo=[a,b].sort((x,y)=>x===x.toUpperCase()?-1:1).join('');
+      combos.push(combo);
+      const c=document.createElement('div');c.className='punnett-cell';c.textContent=combo;box.appendChild(c);
+    });
+  });
+  // ratio
+  const doms=combos.filter(c=>c.includes(t.dom)).length;
+  const recs=combos.length-doms;
+  const colors=['#22c55e','#ef4444'];
+  $('#ratioBar').innerHTML=`<div class="ratio-seg" style="width:${doms/combos.length*100}%;background:${colors[0]}">${doms>0?doms:''}${doms>0?'/'+combos.length:''}</div><div class="ratio-seg" style="width:${recs/combos.length*100}%;background:${colors[1]}">${recs>0?recs:''}${recs>0?'/'+combos.length:''}</div>`;
+  $('#ratioLabel').textContent=`${doms} ${t.domName}${doms!==1?'':''}${recs>0?' : '+recs+' '+t.recName+(recs!==1?'s':''):''}  (${doms}:${recs} ratio)`;
+};
+
+// Glossary
+const glossary=[
+  {t:'Gene',d:'A segment of DNA that codes for a specific protein or trait.'},
+  {t:'Allele',d:'Alternate forms of a gene. E.g., R (red) and r (white) for flower colour.'},
+  {t:'Dominant',d:'Allele that masks the effect of the recessive allele when present (shown as capital letter).'},
+  {t:'Recessive',d:'Allele whose effect is masked by a dominant allele (shown as lowercase letter).'},
+  {t:'Homozygous',d:'Having two identical alleles for a gene (RR or rr).'},
+  {t:'Heterozygous',d:'Having two different alleles for a gene (Rr).'},
+  {t:'Genotype',d:'The genetic makeup of an organism (e.g., RR, Rr, rr).'},
+  {t:'Phenotype',d:'The observable physical trait (e.g., red flower, tall plant).'},
+];
+$('#glossary').innerHTML=glossary.map(g=>`<div style="padding:10px 12px;background:var(--surface-2);border-radius:9px;border:1px solid var(--line)"><strong style="color:var(--accent)">${g.t}</strong><span style="color:var(--ink-2);font-size:13px"> — ${g.d}</span></div>`).join('');
+try{updateTraitOptions();}catch(e){console.error('traits init',e);}
+
+/* ==================== QUIZ ==================== */
+const QUESTIONS=[
+  {c:'6',q:'Which of these is NOT a living thing?',opts:['Dog','Tree','Water','Bacteria'],a:2},
+  {c:'6',q:'The basic unit of life is the:',opts:['Tissue','Organ','Cell','Organism'],a:2},
+  {c:'6',q:'Photosynthesis occurs in which organelle?',opts:['Mitochondria','Ribosome','Vacuole','Chloroplast'],a:3},
+  {c:'9',q:'Which of the following is a unicellular organism?',opts:['Fish','Earthworm','Amoeba','Fern'],a:2},
+  {c:'9',q:'Prokaryotic cells lack a:',opts:['Cell wall','Ribosome','Nucleus','Cell membrane'],a:2},
+  {c:'9',q:'Who proposed the Cell Theory?',opts:['Darwin & Wallace','Schleiden & Schwann','Watson & Crick','Mendel & Morgan'],a:1},
+  {c:'10',q:'The powerhouse of the cell is:',opts:['Nucleus','Ribosome','Mitochondria','Golgi Body'],a:2},
+  {c:'10',q:'Which blood cells carry oxygen?',opts:['WBC','Platelets','RBC','Plasma'],a:2},
+  {c:'10',q:'DNA replication occurs during:',opts:['G1 phase','S phase','G2 phase','M phase'],a:1},
+  {c:'11',q:'The fluid mosaic model describes the structure of:',opts:['DNA','Cell wall','Plasma membrane','Endoplasmic reticulum'],a:2},
+  {c:'11',q:'Which nitrogenous base is found in RNA but NOT DNA?',opts:['Adenine','Guanine','Uracil','Cytosine'],a:2},
+  {c:'11',q:'Respiration that occurs without oxygen is called:',opts:['Aerobic','Anaerobic','Oxidative','Photophosphorylation'],a:1},
+  {c:'12',q:'The site of antibody production in the body is:',opts:['T lymphocytes','B lymphocytes','Macrophages','Neutrophils'],a:1},
+  {c:'12',q:'Which hormone is produced by the islets of Langerhans?',opts:['Thyroxin','Insulin','Adrenaline','Cortisol'],a:1},
+  {c:'12',q:"Mendel's Law of Segregation states that:",opts:['Traits blend together','Alleles separate during gamete formation','Dominant traits always appear','Genes are on chromosomes'],a:1},
+  {c:'12',q:'Which enzyme joins Okazaki fragments during DNA replication?',opts:['Helicase','Primase','DNA Ligase','DNA Polymerase III'],a:2},
+];
+
+let quizState={qs:[],idx:0,score:0,answered:false};
+
+function startQuiz(){
+  const cls=$('#quizClass').value;
+  quizState.qs=cls==='all'?[...QUESTIONS]:[...QUESTIONS.filter(q=>q.c===cls)];
+  quizState.qs.sort(()=>Math.random()-.5);
+  quizState.idx=0; quizState.score=0;
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const {qs,idx,score}=quizState;
+  if(!qs.length){$('#quizBody').innerHTML='<p style="color:var(--ink-2)">No questions for this class. Choose another class.</p>';return;}
+  if(idx>=qs.length){renderResult();return;}
+  const q=qs[idx];
+  quizState.answered=false;
+  $('#quizBody').innerHTML=`
+    <div class="quiz-meta"><span>Question ${idx+1} / ${qs.length}</span><span>Score: ${score}</span></div>
+    <div class="quiz-bar"><div class="quiz-fill" style="width:${idx/qs.length*100}%"></div></div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-opts">${q.opts.map((o,i)=>`<button class="quiz-opt" data-i="${i}">${o}</button>`).join('')}</div>
+    <div class="feedback" id="feedback"></div>
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button class="btn ghost" id="skipBtn">Skip →</button></div>`;
+  $$('.quiz-opt').forEach(btn=>btn.addEventListener('click',()=>answerQ(+btn.dataset.i)));
+  $('#skipBtn').addEventListener('click',()=>{quizState.idx++;renderQuestion();});
+}
+
+function answerQ(i){
+  if(quizState.answered) return;
+  quizState.answered=true;
+  const q=quizState.qs[quizState.idx];
+  const correct=i===q.a;
+  if(correct) quizState.score++;
+  $$('.quiz-opt').forEach((btn,j)=>{
+    btn.disabled=true;
+    if(j===q.a) btn.classList.add('correct');
+    else if(j===i) btn.classList.add('wrong');
+  });
+  const fb=$('#feedback');
+  fb.className='feedback show '+(correct?'good':'bad');
+  fb.textContent=correct?'✓ Correct!':'✗ Wrong — the answer is: '+q.opts[q.a];
+  const skip=$('#skipBtn'); skip.textContent='Next →';
+}
+
+function renderResult(){
+  const {qs,score}=quizState;
+  const pct=Math.round(score/qs.length*100);
+  $('#quizBody').innerHTML=`
+    <div style="text-align:center;padding:20px 0">
+      <div class="score-ring">${pct}%</div>
+      <h3 style="margin-bottom:6px">${pct>=80?'Excellent!':pct>=50?'Good effort!':'Keep practising!'}</h3>
+      <p style="color:var(--ink-2);margin-bottom:18px">You scored ${score} out of ${qs.length}</p>
+      <button class="btn" onclick="startQuiz()">Try Again</button>
+    </div>`;
+}
+
+$('#quizClass').addEventListener('change',startQuiz);
+try{startQuiz();}catch(e){console.error('quiz init',e);}
+
+/* ==================== NCERT CHAPTERS ==================== */
+const CHAPTERS=[
+  {grade:'Class 6',chapters:['The Living World','Components of Food','Fibre to Fabric','Sorting Materials into Groups','Separation of Substances','Changes Around Us','Getting to Know Plants','Body Movements','The Living Organisms and Their Surroundings','Motion and Measurement of Distances','Light, Shadows and Reflection','Electricity and Circuits','Fun with Magnets','Water','Air Around Us','Garbage In, Garbage Out']},
+  {grade:'Class 7',chapters:['Nutrition in Plants','Nutrition in Animals','Heat','Acids, Bases and Salts','Physical and Chemical Changes','Respiration in Organisms','Transportation in Animals and Plants','Reproduction in Plants','Motion and Time','Electric Current and its Effects','Light','Forests: Our Lifeline','Wastewater Story']},
+  {grade:'Class 8',chapters:['Crop Production and Management','Microorganisms: Friend and Foe','Coal and Petroleum','Combustion and Flame','Conservation of Plants and Animals','Cell — Structure and Functions','Reproduction in Animals','Reaching the Age of Adolescence','Force and Pressure','Friction','Sound','Chemical Effects of Electric Current','Some Natural Phenomena','Light','Stars and the Solar System','Pollution of Air and Water']},
+  {grade:'Class 9',chapters:['The Fundamental Unit of Life','Tissues','Diversity in Living Organisms','Why Do We Fall Ill?','Natural Resources','Improvement in Food Resources']},
+  {grade:'Class 10',chapters:['Life Processes','Control and Coordination','How Do Organisms Reproduce?','Heredity and Evolution','Our Environment','Management of Natural Resources']},
+  {grade:'Class 11',chapters:['The Living World','Biological Classification','Plant Kingdom','Animal Kingdom','Morphology of Flowering Plants','Anatomy of Flowering Plants','Structural Organisation in Animals','Cell: The Unit of Life','Biomolecules','Cell Cycle and Cell Division','Photosynthesis in Higher Plants','Respiration in Plants','Plant Growth and Development','Digestion and Absorption','Breathing and Exchange of Gases','Body Fluids and Circulation','Excretory Products and their Elimination','Locomotion and Movement','Neural Control and Coordination','Chemical Coordination and Integration']},
+  {grade:'Class 12',chapters:['Reproduction in Organisms','Sexual Reproduction in Flowering Plants','Human Reproduction','Reproductive Health','Principles of Inheritance and Variation','Molecular Basis of Inheritance','Evolution','Human Health and Disease','Strategies for Enhancement in Food Production','Microbes in Human Welfare','Biotechnology: Principles and Processes','Biotechnology and its Applications','Organisms and Populations','Ecosystem','Biodiversity and Conservation','Environmental Issues']},
+];
+
+const cg=$('#chapterGrid');
+CHAPTERS.forEach(cl=>{
+  const div=document.createElement('div'); div.className='ch-card';
+  div.innerHTML=`<div class="ch-grade">${cl.grade}</div><ul class="ch-list">${cl.chapters.map((c,i)=>`<li><span class="n">${i+1}</span><span class="t">${c}</span></li>`).join('')}</ul>`;
+  cg.appendChild(div);
+});
+</script>
+</body>
+</html>
