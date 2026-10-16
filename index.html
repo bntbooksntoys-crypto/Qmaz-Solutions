@@ -52,6 +52,16 @@ header.top{position:sticky;top:0;z-index:30;background:rgba(237,242,240,.93);bac
 .iconbtn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px;position:relative;display:grid;place-items:center}
 .dot{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:99px;background:var(--vermilion)}
 .notifwrap{position:relative}
+
+.qpill{display:flex;align-items:center;gap:10px;padding:6px 16px 6px 6px;border-radius:14px;background:#a8c8ff;color:#14212B}
+.qpill .lg{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#7f5cff,#b44dff);display:grid;place-items:center;flex:none}
+.qpill .lg svg{width:18px;height:18px}
+.qpill{white-space:nowrap}.qpill b{display:block;font-size:14px;line-height:1.1}@media(min-width:701px){.toprow{padding-right:190px}}.qpill span{display:block;font-size:11px;opacity:.7}
+.qmguest{display:flex;gap:8px;margin-left:10px;flex:none}
+.qmguest[hidden]{display:none}
+.qmguest button{border-radius:10px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
+.qmguest button.go{background:#0E7C6B;border-color:#0E7C6B;color:#fff}
+@media(max-width:700px){.qmguest button{padding:7px 10px;font-size:12px}}
 .qmprof{position:relative;margin-left:10px;flex:none}
 .qmprof[hidden]{display:none}
 .qmav{width:38px;height:38px;border-radius:50%;border:2px solid var(--line);padding:0;overflow:hidden;cursor:pointer;background:linear-gradient(135deg,#7f5cff,#b44dff);color:#fff;font:700 15px var(--display,sans-serif);display:grid;place-items:center}
@@ -2096,8 +2106,7 @@ function render(){
 
   document.getElementById('app').innerHTML =
   '<div class="shell">'+
-    '<aside class="side"><div class="brand"><div class="brand-mark">'+I.cap(18)+'</div>'+
-      '<div><h1>EdTech Platform</h1></div></div>'+
+    '<aside class="side"><div class="brand"><div class="qpill"><div class="lg">'+QM_SVG+'</div><div><b>Qmaz Solutions</b><span>Dashboard</span></div></div></div>'+
       navHTML()+
       '</aside>'+
     '<div class="main">'+
@@ -2112,6 +2121,7 @@ function render(){
               '<div class="small muted mt4">Your Mathematics unit test starts at 2:00 pm today.</div></div></div>'+
           '</div>':'')+
         '</div>'+
+        '<div class="qmguest" id="qmGuest" hidden><button onclick="qmCmd(\'signin\')">Login</button><button class="go" onclick="qmCmd(\'signup\')">Start for Free</button></div>'+
         '<div class="qmprof" id="qmProf" hidden><button class="qmav" id="qmAv" onclick="qmToggle(event)" aria-label="Profile"></button>'+
           '<div class="qmmenu" id="qmMenu" hidden><div class="qmhead"><div class="qmav big" id="qmAvBig"></div><div><b id="qmName"></b><span id="qmMail"></span></div></div>'+
             '<button onclick="qmCmd(\'photo\')">Change photo</button><button onclick="qmCmd(\'signout\')">Sign out</button></div></div>'+
@@ -2196,10 +2206,13 @@ function doSignOut(){
 /* ── Qmaz profile bridge: Qmaz (in the home iframe) sends the signed-in profile; shown in the top bar ── */
 const QM_URL=(/^(localhost|127\.0\.0\.1)$/.test(location.hostname))?'http://localhost:3001':'https://bntbooksntoys-crypto.github.io/Qmaz-Solutions/';
 const QM_ORIGIN=new URL(QM_URL).origin;
+const QM_SVG='<svg viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>';
 let qmProfile=null;
 function paintQm(){
   const box=document.getElementById('qmProf'); if(!box) return;
-  const on=!!(qmProfile&&qmProfile.signedIn)&&state.view==='home'&&state.role==='student';
+  const onHome=state.view==='home'&&state.role==='student';
+  const gst=document.getElementById('qmGuest'); if(gst) gst.hidden=!(onHome&&!(qmProfile&&qmProfile.signedIn));
+  const on=!!(qmProfile&&qmProfile.signedIn)&&onHome;
   box.hidden=!on; if(!on) return;
   const fill=el=>{el.innerHTML=qmProfile.photo?'<img alt="" src="'+qmProfile.photo.replace(/"/g,'')+'">':String(qmProfile.name||'?').trim().charAt(0).toUpperCase().replace(/[<>&"]/g,'');};
   fill(document.getElementById('qmAv')); fill(document.getElementById('qmAvBig'));
